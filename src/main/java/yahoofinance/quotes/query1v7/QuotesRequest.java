@@ -12,10 +12,9 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.URL;
 import java.net.URLConnection;
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+
+import yahoofinance.histquotes2.CrumbManager;
 
 /**
  *
@@ -62,6 +61,10 @@ public abstract class QuotesRequest<T> {
 
         String url = YahooFinance.QUOTES_QUERY1V7_BASE_URL + "?" + Utils.getURLParameters(params);
 
+        if (!CrumbManager.getCrumb().isEmpty()) {
+            url = url + "&crumb=" + CrumbManager.getCrumb();
+        }
+
         // Get JSON from Yahoo
         log.info("Sending request: " + url);
 
@@ -69,7 +72,11 @@ public abstract class QuotesRequest<T> {
         RedirectableRequest redirectableRequest = new RedirectableRequest(request, 5);
         redirectableRequest.setConnectTimeout(YahooFinance.CONNECTION_TIMEOUT);
         redirectableRequest.setReadTimeout(YahooFinance.CONNECTION_TIMEOUT);
-        URLConnection connection = redirectableRequest.openConnection();
+
+        Map<String, String> requestProperties = new HashMap<String, String>();
+        requestProperties.put("Cookie", CrumbManager.getCookie());
+
+        URLConnection connection = redirectableRequest.openConnection(requestProperties);
 
         InputStreamReader is = new InputStreamReader(connection.getInputStream());
         JsonNode node = objectMapper.readTree(is);

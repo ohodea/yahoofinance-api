@@ -4,17 +4,11 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
-import java.net.CookieHandler;
-import java.net.CookieManager;
-import java.net.CookieStore;
-import java.net.HttpCookie;
-import java.net.HttpURLConnection;
-import java.net.URL;
-import java.net.URLConnection;
-import java.net.URLEncoder;
+import java.net.*;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.TreeMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -41,24 +35,22 @@ public class CrumbManager {
             return;
         }
 
-        URL request = new URL(YahooFinance.HISTQUOTES2_SCRAPE_URL);
+       URL request = new URL(YahooFinance.HISTQUOTES2_SCRAPE_URL);
         RedirectableRequest redirectableRequest = new RedirectableRequest(request, 5);
         redirectableRequest.setConnectTimeout(YahooFinance.CONNECTION_TIMEOUT);
         redirectableRequest.setReadTimeout(YahooFinance.CONNECTION_TIMEOUT);
-        
+
+        Map<String, String> requestProperties = new TreeMap<>();
+        requestProperties.put("User-Agent", "Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36");
        
-        URLConnection connection = redirectableRequest.openConnection();
+        URLConnection connection = redirectableRequest.openConnection(requestProperties);
        
         for(String headerKey : connection.getHeaderFields().keySet()) {        	
             if("Set-Cookie".equalsIgnoreCase(headerKey)) {
-                for(String cookieField : connection.getHeaderFields().get(headerKey)) {                	
-                    for(String cookieValue : cookieField.split(";")) {
-                        if(cookieValue.matches("B=.*")) {
-                            cookie = cookieValue;
-                            log.debug("Set cookie from http request: {}", cookie);
-                            return;
-                        }
-                    }
+                for(String cookieField : connection.getHeaderFields().get(headerKey)) {
+                    cookie = cookieField;
+                    log.debug("Set cookie from http request: {}", cookie);
+                    return;
                 }
             }
         }
@@ -67,7 +59,7 @@ public class CrumbManager {
         InputStreamReader is = new InputStreamReader(connection.getInputStream());
         BufferedReader br = new BufferedReader(is);
         String line;
-        Pattern patternPostForm = Pattern.compile("action=\"/consent\"");
+        Pattern patternPostForm = Pattern.compile("class=\"consent-form\"");
         Pattern patternInput = Pattern.compile("(<input type=\"hidden\" name=\")(.*?)(\" value=\")(.*?)(\">)");
         Matcher matcher;
         Map<String,String> datas = new HashMap<String,String>();
@@ -137,12 +129,10 @@ public class CrumbManager {
         // Then Set the cookie with the cookieJar
         CookieStore cookieJar =  ((CookieManager)CookieHandler.getDefault()).getCookieStore();
         List <HttpCookie> cookies = cookieJar.getCookies();
-        for (HttpCookie hcookie: cookies) {        	
-        	if(hcookie.toString().matches("B=.*")) {
-                 cookie = hcookie.toString();
-                 log.debug("Set cookie from http request: {}", cookie);
-                 return;
-             }
+        for (HttpCookie hcookie: cookies) {
+            cookie = hcookie.toString();
+            log.debug("Set cookie from http request: {}", cookie);
+            return;
         }
             
         log.debug("Failed to set cookie from http request. Historical quote requests will most likely fail.");
@@ -162,6 +152,7 @@ public class CrumbManager {
 
         Map<String, String> requestProperties = new HashMap<String, String>();
         requestProperties.put("Cookie", cookie);
+        requestProperties.put("User-Agent", "Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36");
 
         URLConnection crumbConnection = redirectableCrumbRequest.openConnection(requestProperties);
         InputStreamReader is = new InputStreamReader(crumbConnection.getInputStream());
