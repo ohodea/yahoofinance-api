@@ -8,14 +8,10 @@ import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import yahoofinance.histquotes.HistQuotesRequest;
-import yahoofinance.histquotes.HistoricalQuote;
-import yahoofinance.histquotes.Interval;
+import yahoofinance.dtos.*;
 import yahoofinance.histquotes2.HistDividendsRequest;
 import yahoofinance.histquotes2.HistQuotes2Request;
 import yahoofinance.histquotes2.HistSplitsRequest;
-import yahoofinance.histquotes2.HistoricalDividend;
-import yahoofinance.histquotes2.HistoricalSplit;
 import yahoofinance.query2v8.HistQuotesQuery2V8Request;
 import yahoofinance.quotes.query1v7.StockQuotesQuery1V7Request;
 import yahoofinance.quotes.stock.StockDividend;
@@ -224,15 +220,15 @@ public class Stock {
      * 
      * @return      a list of historical quotes from this stock
      * @throws java.io.IOException when there's a connection problem
-     * @see         #getHistory(yahoofinance.histquotes.Interval) 
+     * @see         #getHistory(yahoofinance.dtos.Interval)
      * @see         #getHistory(java.util.Calendar) 
      * @see         #getHistory(java.util.Calendar, java.util.Calendar) 
-     * @see         #getHistory(java.util.Calendar, yahoofinance.histquotes.Interval) 
-     * @see         #getHistory(java.util.Calendar, java.util.Calendar, yahoofinance.histquotes.Interval) 
+     * @see         #getHistory(java.util.Calendar, yahoofinance.dtos.Interval)
+     * @see         #getHistory(java.util.Calendar, java.util.Calendar, yahoofinance.dtos.Interval)
      */
-    public List<HistoricalQuote> getHistory() throws IOException {
+    public HistoricalDto getHistory() throws IOException {
         if(this.history != null) {
-            return this.history;
+            return new HistoricalDto(this.history, this.dividendHistory, this.splitHistory);
         }
         return this.getHistory(HistQuotesRequest.DEFAULT_FROM);
     }
@@ -250,7 +246,7 @@ public class Stock {
      * @throws java.io.IOException when there's a connection problem
      * @see                 #getHistory() 
      */
-    public List<HistoricalQuote> getHistory(Interval interval) throws IOException {
+    public HistoricalDto getHistory(Interval interval) throws IOException {
         return this.getHistory(HistQuotesRequest.DEFAULT_FROM, interval);
     }
     
@@ -267,7 +263,7 @@ public class Stock {
      * @throws java.io.IOException when there's a connection problem
      * @see                 #getHistory() 
      */
-    public List<HistoricalQuote> getHistory(Calendar from) throws IOException {
+    public HistoricalDto getHistory(Calendar from) throws IOException {
         return this.getHistory(from, HistQuotesRequest.DEFAULT_TO);
     }
     
@@ -285,7 +281,7 @@ public class Stock {
      * @throws java.io.IOException when there's a connection problem
      * @see                 #getHistory() 
      */
-    public List<HistoricalQuote> getHistory(Calendar from, Interval interval) throws IOException {
+    public HistoricalDto getHistory(Calendar from, Interval interval) throws IOException {
         return this.getHistory(from, HistQuotesRequest.DEFAULT_TO, interval);
     }
     
@@ -303,7 +299,7 @@ public class Stock {
      * @throws java.io.IOException when there's a connection problem
      * @see                 #getHistory() 
      */
-    public List<HistoricalQuote> getHistory(Calendar from, Calendar to) throws IOException {
+    public HistoricalDto getHistory(Calendar from, Calendar to) throws IOException {
         return this.getHistory(from, to, Interval.MONTHLY);
     }
     
@@ -322,20 +318,16 @@ public class Stock {
      * @throws java.io.IOException when there's a connection problem
      * @see                 #getHistory() 
      */
-    public List<HistoricalQuote> getHistory(Calendar from, Calendar to, Interval interval) throws IOException {
-        if(YahooFinance.HISTQUOTES2V8_ENABLED.equalsIgnoreCase("true"))
-        {
+    public HistoricalDto getHistory(Calendar from, Calendar to, Interval interval) throws IOException
+    {
             HistQuotesQuery2V8Request hist = new HistQuotesQuery2V8Request(this.symbol, from, to, interval);
-            this.setHistory(hist.getResult());
-        }
-        else if(YahooFinance.HISTQUOTES2_ENABLED.equalsIgnoreCase("true")) {
-            HistQuotes2Request hist = new HistQuotes2Request(this.symbol, from, to, interval);
-            this.setHistory(hist.getResult());
-        } else {
-            HistQuotesRequest hist = new HistQuotesRequest(this.symbol, from, to, interval);
-            this.setHistory(hist.getResult());
-        }
-        return this.history;
+            HistoricalDto dto = hist.getResult();
+
+            this.setHistory(dto.getQuotesList());
+            this.setDividendHistory(dto.getDividendsList());
+            this.setSplitHistory(dto.getSplitsList());
+
+            return dto;
     }
     
     public void setHistory(List<HistoricalQuote> history) {
@@ -401,7 +393,7 @@ public class Stock {
      * @see                 #getDividendHistory() 
      */
     public List<HistoricalDividend> getDividendHistory(Calendar from, Calendar to) throws IOException {
-        if(YahooFinance.HISTQUOTES2_ENABLED.equalsIgnoreCase("true")) {
+                if(YahooFinance.HISTQUOTES2_ENABLED.equalsIgnoreCase("true")) {
             HistDividendsRequest histDiv = new HistDividendsRequest(this.symbol, from, to);
             this.setDividendHistory(histDiv.getResult());
         } else {

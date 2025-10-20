@@ -1,6 +1,6 @@
 package yahoofinance.histquotes2;
 
-import yahoofinance.histquotes.Interval;
+import yahoofinance.dtos.Interval;
 
 /**
  *

@@ -1,4 +1,4 @@
-package yahoofinance.histquotes2;
+package yahoofinance.dtos;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;

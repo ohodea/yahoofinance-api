@@ -2,8 +2,8 @@ package yahoofinance;
 
 import org.junit.Before;
 import org.junit.Test;
-import yahoofinance.histquotes.HistoricalQuote;
-import yahoofinance.histquotes.Interval;
+import yahoofinance.dtos.HistoricalQuote;
+import yahoofinance.dtos.Interval;
 import yahoofinance.mock.MockedServersTest;
 
 import java.io.IOException;
@@ -39,9 +39,9 @@ public class HistoricalQuoteRequestTest extends MockedServersTest {
         Stock goog = YahooFinance.get("GOOG", from, today);
 
         assertNotNull(goog.getHistory());
-        assertEquals(13, goog.getHistory().size());
+        assertEquals(13, goog.getHistory().getQuotesList().size());
 
-        for(HistoricalQuote histQuote : goog.getHistory()) {
+        for(HistoricalQuote histQuote : goog.getHistory().getQuotesList()) {
             assertEquals("GOOG", histQuote.getSymbol());
             assertTrue(histQuote.getAdjClose().compareTo(BigDecimal.ZERO) > 0);
             assertTrue(histQuote.getClose().compareTo(BigDecimal.ZERO) > 0);
@@ -52,7 +52,7 @@ public class HistoricalQuoteRequestTest extends MockedServersTest {
             assertNotNull(histQuote.getDate());
         }
 
-        HistoricalQuote histQuote = goog.getHistory().get(5);
+        HistoricalQuote histQuote = goog.getHistory().getQuotesList().get(5);
 
         assertEquals(new BigDecimal("693.01001"), histQuote.getAdjClose());
         assertEquals(new BigDecimal("693.01001"), histQuote.getClose());
@@ -72,9 +72,9 @@ public class HistoricalQuoteRequestTest extends MockedServersTest {
         Stock scty = YahooFinance.get("SCTY", from, today, Interval.WEEKLY);
         Stock goog = YahooFinance.get("GOOG", from, today, Interval.MONTHLY);
 
-        assertEquals(252, tsla.getHistory().size());
-        assertEquals(53, scty.getHistory().size());
-        assertEquals(13, goog.getHistory().size());
+        assertEquals(252, tsla.getHistory().getQuotesList().size());
+        assertEquals(53, scty.getHistory().getQuotesList().size());
+        assertEquals(13, goog.getHistory().getQuotesList().size());
     }
 
     @Test
@@ -85,14 +85,14 @@ public class HistoricalQuoteRequestTest extends MockedServersTest {
 
         Stock goog = YahooFinance.get("GOOG", from, to, Interval.WEEKLY);
 
-        assertEquals(261, goog.getHistory().size());
+        assertEquals(261, goog.getHistory().getQuotesList().size());
 
-        HistoricalQuote histQuote = goog.getHistory().get(0);
+        HistoricalQuote histQuote = goog.getHistory().getQuotesList().get(0);
         assertEquals(8, histQuote.getDate().get(Calendar.MONTH));
         assertEquals(6, histQuote.getDate().get(Calendar.DATE));
         assertEquals(2016, histQuote.getDate().get(Calendar.YEAR));
 
-        histQuote = goog.getHistory().get(260);
+        histQuote = goog.getHistory().getQuotesList().get(260);
         assertEquals(8, histQuote.getDate().get(Calendar.MONTH));
         assertEquals(12, histQuote.getDate().get(Calendar.DATE));
         assertEquals(2011, histQuote.getDate().get(Calendar.YEAR));
@@ -106,10 +106,10 @@ public class HistoricalQuoteRequestTest extends MockedServersTest {
         Stock intel = stocks.get("INTC");
         Stock airbus = stocks.get("AIR.PA");
 
-        assertEquals(13, intel.getHistory().size());
-        assertEquals(13, airbus.getHistory().size());
-        assertEquals("INTC", intel.getHistory().get(3).getSymbol());
-        assertEquals("AIR.PA", airbus.getHistory().get(5).getSymbol());
+        assertEquals(13, intel.getHistory().getQuotesList().size());
+        assertEquals(13, airbus.getHistory().getQuotesList().size());
+        assertEquals("INTC", intel.getHistory().getQuotesList().get(3).getSymbol());
+        assertEquals("AIR.PA", airbus.getHistory().getQuotesList().get(5).getSymbol());
     }
 
     @Test
@@ -119,7 +119,7 @@ public class HistoricalQuoteRequestTest extends MockedServersTest {
         assertNotNull(goog.getHistory(from, today));
         requestCount += 1;
         assertEquals(requestCount, MockedServersTest.histQuotesServer.getRequestCount());
-        assertEquals(13, goog.getHistory().size());
+        assertEquals(13, goog.getHistory().getQuotesList().size());
         assertEquals(requestCount, MockedServersTest.histQuotesServer.getRequestCount());
 
         Calendar from = (Calendar) today.clone();
@@ -128,7 +128,7 @@ public class HistoricalQuoteRequestTest extends MockedServersTest {
         assertNotNull(goog.getHistory(from, to, Interval.WEEKLY));
         requestCount += 1;
         assertEquals(requestCount, MockedServersTest.histQuotesServer.getRequestCount());
-        assertEquals(261, goog.getHistory().size());
+        assertEquals(261, goog.getHistory().getQuotesList().size());
     }
 
     @Test
@@ -142,7 +142,7 @@ public class HistoricalQuoteRequestTest extends MockedServersTest {
         List<HistoricalQuote> histQuotes = null;
         int requestCount = MockedServersTest.histQuotesServer.getRequestCount();
         try {
-            histQuotes = goog.getHistory(from, to);
+            histQuotes = goog.getHistory(from, to).getQuotesList();
         } catch (IOException ex) {
             reqEx = ex;
         }

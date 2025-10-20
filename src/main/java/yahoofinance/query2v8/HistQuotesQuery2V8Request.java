@@ -9,6 +9,7 @@ import java.net.URLConnection;
 import java.net.URLEncoder;
 import java.util.*;
 
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -17,8 +18,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import yahoofinance.Utils;
 import yahoofinance.YahooFinance;
-import yahoofinance.histquotes.HistoricalQuote;
-import yahoofinance.histquotes.Interval;
+import yahoofinance.api.dto.*;
+import yahoofinance.dtos.*;
 import yahoofinance.histquotes2.CrumbManager;
 import yahoofinance.histquotes2.IntervalMapper;
 import yahoofinance.histquotes2.QueryInterval;
@@ -33,6 +34,8 @@ public class HistQuotesQuery2V8Request {
     private static final Logger log = LoggerFactory.getLogger(HistQuotesQuery2V8Request.class);
     private static final ObjectMapper objectMapper = new ObjectMapper();
 
+
+
     private final String symbol;
     private final Calendar from;
     private final Calendar to;
@@ -42,6 +45,8 @@ public class HistQuotesQuery2V8Request {
 
     static {
         DEFAULT_FROM.add(Calendar.YEAR, -1);
+
+        objectMapper.enable(DeserializationFeature.USE_BIG_DECIMAL_FOR_FLOATS);
     }
     public static final Calendar DEFAULT_TO = Calendar.getInstance();
     public static final QueryInterval DEFAULT_INTERVAL = QueryInterval.MONTHLY;
@@ -63,12 +68,14 @@ public class HistQuotesQuery2V8Request {
         this.from = this.cleanHistCalendar(from);
         this.to = this.cleanHistCalendar(to);
         this.interval = interval;
+
     }
     public HistQuotesQuery2V8Request(String symbol, Calendar from, Calendar to, Interval interval) {
         this.symbol = symbol;
         this.from = this.cleanHistCalendar(from);
         this.to = this.cleanHistCalendar(to);
         this.interval = IntervalMapper.get(interval);
+
     }
 
     public HistQuotesQuery2V8Request(String symbol, Date from, Date to) {
@@ -95,44 +102,71 @@ public class HistQuotesQuery2V8Request {
         return cal;
     }
 
-    public List<HistoricalQuote> getResult() throws IOException {
+    public HistoricalDto getResult() throws IOException {
         String json = getJson();
-        JsonNode resultNode = objectMapper.readTree(json).get("chart").get("result").get(0);
-        JsonNode timestamps = resultNode.get("timestamp");
-        JsonNode indicators = resultNode.get("indicators");
-        JsonNode quotes = indicators.get("quote").get(0);
-        JsonNode closes = quotes.get("close");
-        JsonNode volumes = quotes.get("volume");
-        JsonNode opens = quotes.get("open");
-        JsonNode highs = quotes.get("high");
-        JsonNode lows = quotes.get("low");
-        JsonNode adjCloses = indicators.get("adjclose").get(0).get("adjclose");
+        ChartApiResponse yahooResponse =  objectMapper.readValue(json, ChartApiResponse.class);
+        Result yahooQuotes = yahooResponse.getChart().getResult().get(0);
+        List<Long> timestampsList = yahooQuotes.getTimestamp();
+        Quote quote = yahooQuotes.getIndicators().getQuote().get(0);
 
-        List<HistoricalQuote> result = new ArrayList<HistoricalQuote>();
-        for (int i = 0; i < timestamps.size(); i++) {
-            long timestamp = timestamps.get(i).asLong();
+        AdjClose adjClose = yahooQuotes.getIndicators().getAdjclose().get(0);
+
+        List<HistoricalQuote> quoteListToBeReturned = new ArrayList<>();
+
+        for (int i = 0; i < timestampsList.size(); i++)
+        {
             Calendar calendar = Calendar.getInstance();
-            calendar.setTimeInMillis(timestamp * 1000);
-            BigDecimal adjClose = adjCloses.get(i).decimalValue();
-            long volume = volumes.get(i).asLong();
-            BigDecimal open = opens.get(i).decimalValue();
-            BigDecimal high = highs.get(i).decimalValue();
-            BigDecimal low = lows.get(i).decimalValue();
-            BigDecimal close = closes.get(i).decimalValue();
-
-            HistoricalQuote quote = new HistoricalQuote(
-                symbol,
-                calendar,
-                open,
-                low,
-                high,
-                close,
-                adjClose,
-                volume);
-            result.add(quote);
+            calendar.setTimeInMillis(timestampsList.get(i) * 1000);
+            quoteListToBeReturned.add(new HistoricalQuote(
+                    symbol,
+                    calendar,
+                    quote.getOpen().get(i),
+                    quote.getLow().get(i),
+                    quote.getHigh().get(i),
+                    quote.getClose().get(i),
+                    adjClose.getAdjclose().get(i),
+                    quote.getVolume().get(i)));
         }
+        Events yahooEvents =  yahooQuotes.getEvents();
+        List<HistoricalDividend> dividentsListToBeReturned = new ArrayList<>();
+        List<HistoricalSplit> splitListToBeReturned = new ArrayList<>();
+        if(yahooEvents != null)
+        {
+            Map<String, Dividend> dividentsMap = yahooEvents.getDividends();
+            if(dividentsMap !=null)
+            {
 
-        return result;
+                for (Dividend divident : dividentsMap.values())
+                {
+                    Calendar calendar = Calendar.getInstance();
+                    calendar.setTimeInMillis(divident.getDate() * 1000);
+                    dividentsListToBeReturned.add(new HistoricalDividend(
+                            symbol,
+                            calendar,
+                           divident.getAmount()
+                    ));
+                }
+            }
+
+            Map<String, Split> spliMap = yahooEvents.getSplits();
+
+            if(spliMap !=null)
+            {
+
+                for (Split split : spliMap.values())
+                {
+                    Calendar calendar = Calendar.getInstance();
+                    calendar.setTimeInMillis(split.getDate() * 1000);
+                    splitListToBeReturned.add(new HistoricalSplit(
+                            symbol,
+                            calendar,
+                            split.getNumerator(),
+                            split.getDenominator()
+                    ));
+                }
+            }
+        }
+        return new HistoricalDto(quoteListToBeReturned,  dividentsListToBeReturned, splitListToBeReturned);
     }
 
     public String getJson() throws IOException {

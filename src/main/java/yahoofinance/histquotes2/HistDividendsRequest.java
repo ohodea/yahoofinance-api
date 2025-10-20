@@ -2,6 +2,7 @@ package yahoofinance.histquotes2;
 
 import yahoofinance.Utils;
 import yahoofinance.YahooFinance;
+import yahoofinance.dtos.HistoricalDividend;
 import yahoofinance.util.RedirectableRequest;
 
 import java.io.BufferedReader;

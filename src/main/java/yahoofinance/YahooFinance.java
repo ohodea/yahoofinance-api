@@ -5,8 +5,8 @@ import java.util.Calendar;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import yahoofinance.histquotes.HistQuotesRequest;
-import yahoofinance.histquotes.Interval;
+import yahoofinance.dtos.HistQuotesRequest;
+import yahoofinance.dtos.Interval;
 import yahoofinance.quotes.fx.FxQuote;
 import yahoofinance.quotes.csv.FxQuotesRequest;
 import yahoofinance.quotes.csv.StockQuotesData;
@@ -87,7 +87,7 @@ public class YahooFinance {
     /**
      * Same as the <code>get(String)</code> method, but with the option to include
      * historical stock quote data. Including historical data will cause the {@link Stock}
-     * object's member field {@link yahoofinance.histquotes.HistoricalQuote} to be filled in
+     * object's member field {@link yahoofinance.dtos.HistoricalQuote} to be filled in
      * with the default past year term at monthly intervals.
      * Returns null if the data can't be retrieved from Yahoo Finance.
      * 
@@ -204,7 +204,7 @@ public class YahooFinance {
     /**
      * Same as the <code>get(String[])</code> method, but with the option to include
      * historical stock quote data. Including historical data will cause the {@link Stock}
-     * objects their member field {@link yahoofinance.histquotes.HistoricalQuote} to be filled in
+     * objects their member field {@link yahoofinance.dtos.HistoricalQuote} to be filled in
      * with the default past year term at monthly intervals.
      * <p>
      * The latest quotes will be retrieved in a single request to Yahoo Finance.
