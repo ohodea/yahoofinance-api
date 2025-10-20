@@ -1,9 +1,6 @@
 package yahoofinance.histquotes2;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.OutputStreamWriter;
+import java.io.*;
 import java.net.*;
 import java.util.HashMap;
 import java.util.List;
@@ -35,16 +32,35 @@ public class CrumbManager {
             return;
         }
 
-       URL request = new URL(YahooFinance.HISTQUOTES2_SCRAPE_URL);
+        URL request = new URL(YahooFinance.HISTQUOTES2_SCRAPE_URL);
         RedirectableRequest redirectableRequest = new RedirectableRequest(request, 5);
         redirectableRequest.setConnectTimeout(YahooFinance.CONNECTION_TIMEOUT);
         redirectableRequest.setReadTimeout(YahooFinance.CONNECTION_TIMEOUT);
 
         Map<String, String> requestProperties = new TreeMap<>();
-        requestProperties.put("User-Agent", "Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36");
-       
+        requestProperties.put("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36");
+        requestProperties.put("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8");
+        requestProperties.put("Accept-Language", "en-US,en;q=0.9");
         URLConnection connection = redirectableRequest.openConnection(requestProperties);
-       
+
+        if (CookieHandler.getDefault() == null) {
+            CookieHandler.setDefault(new CookieManager(null, CookiePolicy.ACCEPT_ALL));
+        }
+
+        if (connection instanceof HttpURLConnection) {
+            HttpURLConnection http = (HttpURLConnection) connection;
+            int resp = http.getResponseCode();
+            if (resp >= 400) {
+                StringBuilder body = new StringBuilder();
+                try (InputStream is = http.getErrorStream() != null ? http.getErrorStream() : http.getInputStream();
+                     BufferedReader br = new BufferedReader(new InputStreamReader(is))) {
+                    String line;
+                    while ((line = br.readLine()) != null) body.append(line).append('\n');
+                } catch (Exception ignored) {}
+                log.debug("HTTP {} for {}. Body:\n{}", resp, request, body.toString());
+                throw new IOException("HTTP " + resp + " fetching " + request + ". See logs for body.");
+            }
+        }
         for(String headerKey : connection.getHeaderFields().keySet()) {        	
             if("Set-Cookie".equalsIgnoreCase(headerKey)) {
                 for(String cookieField : connection.getHeaderFields().get(headerKey)) {

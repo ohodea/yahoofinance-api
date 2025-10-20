@@ -76,6 +76,9 @@ public abstract class QuotesRequest<T> {
         Map<String, String> requestProperties = new HashMap<String, String>();
         requestProperties.put("Cookie", CrumbManager.getCookie());
 
+        requestProperties.put("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36");
+        requestProperties.put("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8");
+        requestProperties.put("Accept-Language", "en-US,en;q=0.9");
         URLConnection connection = redirectableRequest.openConnection(requestProperties);
 
         InputStreamReader is = new InputStreamReader(connection.getInputStream());

@@ -7,12 +7,7 @@ import java.math.BigDecimal;
 import java.net.URL;
 import java.net.URLConnection;
 import java.net.URLEncoder;
-import java.util.ArrayList;
-import java.util.Calendar;
-import java.util.Date;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -23,8 +18,12 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import yahoofinance.Utils;
 import yahoofinance.YahooFinance;
 import yahoofinance.histquotes.HistoricalQuote;
+import yahoofinance.histquotes.Interval;
+import yahoofinance.histquotes2.CrumbManager;
+import yahoofinance.histquotes2.IntervalMapper;
 import yahoofinance.histquotes2.QueryInterval;
 import yahoofinance.util.RedirectableRequest;
+
 
 /**
  * @author Stijn Strickx
@@ -59,12 +58,17 @@ public class HistQuotesQuery2V8Request {
     public HistQuotesQuery2V8Request(String symbol, Calendar from, Calendar to) {
         this(symbol, from, to, DEFAULT_INTERVAL);
     }
-
     public HistQuotesQuery2V8Request(String symbol, Calendar from, Calendar to, QueryInterval interval) {
         this.symbol = symbol;
         this.from = this.cleanHistCalendar(from);
         this.to = this.cleanHistCalendar(to);
         this.interval = interval;
+    }
+    public HistQuotesQuery2V8Request(String symbol, Calendar from, Calendar to, Interval interval) {
+        this.symbol = symbol;
+        this.from = this.cleanHistCalendar(from);
+        this.to = this.cleanHistCalendar(to);
+        this.interval = IntervalMapper.get(interval);
     }
 
     public HistQuotesQuery2V8Request(String symbol, Date from, Date to) {
@@ -155,7 +159,13 @@ public class HistQuotesQuery2V8Request {
         RedirectableRequest redirectableRequest = new RedirectableRequest(request, 5);
         redirectableRequest.setConnectTimeout(YahooFinance.CONNECTION_TIMEOUT);
         redirectableRequest.setReadTimeout(YahooFinance.CONNECTION_TIMEOUT);
-        URLConnection connection = redirectableRequest.openConnection();
+        Map<String, String> requestProperties = new HashMap<String, String>();
+        requestProperties.put("Cookie", CrumbManager.getCookie());
+        requestProperties.put("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36");
+        requestProperties.put("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8");
+        requestProperties.put("Accept-Language", "en-US,en;q=0.9");
+
+        URLConnection connection = redirectableRequest.openConnection(requestProperties);
 
         InputStreamReader is = new InputStreamReader(connection.getInputStream());
         BufferedReader br = new BufferedReader(is);
