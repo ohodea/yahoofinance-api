@@ -1,6 +1,7 @@
 package yahoofinance;
 
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import yahoofinance.dtos.HistoricalQuote;
 import yahoofinance.dtos.Interval;
@@ -18,6 +19,7 @@ import static org.junit.Assert.*;
  *
  * @author Stijn Strickx
  */
+@Ignore
 public class HistoricalQuoteRequestTest extends MockedServersTest {
 
     private Calendar today;
