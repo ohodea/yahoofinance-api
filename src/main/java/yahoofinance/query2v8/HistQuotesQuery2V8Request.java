@@ -113,6 +113,11 @@ public class HistQuotesQuery2V8Request {
 
         List<HistoricalQuote> quoteListToBeReturned = new ArrayList<>();
 
+        if(timestampsList ==null)
+        {
+            return new HistoricalDto(quoteListToBeReturned, Collections.emptyList(), Collections.emptyList());
+        }
+
         for (int i = 0; i < timestampsList.size(); i++)
         {
             Calendar calendar = Calendar.getInstance();
